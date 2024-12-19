@@ -1,0 +1,79 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>360 Viewer</title>
+    <script src="three.min.js"></script>
+    <style>
+        body { margin: 0; overflow: hidden; }
+        canvas { display: block; }
+    </style>
+</head>
+<body>
+    <script>
+        let images = [];
+        const totalFrames = 36;
+        let currentFrame = 0;
+        let textureCache = [];
+
+        // Preload images into textures to minimize flicker
+        for (let i = 1; i <= totalFrames; i++) {
+            const frameNumber = String(i).padStart(2, '0');
+            const texture = new THREE.TextureLoader().load(`images/frame_${frameNumber}.jpg`);
+            textureCache.push(texture);
+        }
+
+        // Setup Three.js
+        const scene = new THREE.Scene();
+        const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+        const renderer = new THREE.WebGLRenderer();
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        document.body.appendChild(renderer.domElement);
+
+        const material = new THREE.MeshBasicMaterial({ map: textureCache[currentFrame] });
+        const geometry = new THREE.PlaneGeometry(5, 5);
+        const plane = new THREE.Mesh(geometry, material);
+        scene.add(plane);
+        camera.position.z = 5;
+
+        function updateTexture(frame) {
+            plane.material.map = textureCache[frame];
+        }
+
+        let isDragging = false;
+        let startX = 0;
+
+        window.addEventListener('mousedown', (e) => {
+            isDragging = true;
+            startX = e.clientX;
+        });
+
+        window.addEventListener('mousemove', (e) => {
+            if (!isDragging) return;
+            const deltaX = e.clientX - startX;
+
+            if (deltaX < -10) { // Dragging left increases frame
+                currentFrame = (currentFrame + 1) % totalFrames;
+                updateTexture(currentFrame);
+                startX = e.clientX;
+            } else if (deltaX > 10) { // Dragging right decreases frame
+                currentFrame = (currentFrame - 1 + totalFrames) % totalFrames;
+                updateTexture(currentFrame);
+                startX = e.clientX;
+            }
+        });
+
+        window.addEventListener('mouseup', () => {
+            isDragging = false;
+        });
+
+        function animate() {
+            requestAnimationFrame(animate);
+            renderer.render(scene, camera);
+        }
+        animate();
+    </script>
+</body>
+</html>
